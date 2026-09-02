@@ -1,131 +1,129 @@
 /* ============================================================
    AURA DESIGN SYSTEM — Global Styles
-   Ported faithfully from the Stitch design
+   Futuristic dark theme with premium micro-interactions
    ============================================================ */
 
-/* --- Google Fonts: Inter --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
-/* --- CSS Custom Properties (Design Tokens) --- */
 :root {
-  /* Surface colors — deep atmospheric navies */
-  --color-background:               #051424;
-  --color-surface:                  #051424;
-  --color-surface-dim:              #051424;
-  --color-surface-bright:           #2c3a4c;
-  --color-surface-container-lowest: #010f1f;
-  --color-surface-container-low:    #0d1c2d;
-  --color-surface-container:        #122131;
-  --color-surface-container-high:   #1c2b3c;
-  --color-surface-container-highest:#273647;
-  --color-surface-variant:          #273647;
+  --aura-bg: #050b16;
+  --aura-surface: rgba(16, 24, 38, 0.82);
+  --aura-surface-strong: rgba(22, 30, 44, 0.96);
+  --aura-surface-soft: rgba(13, 20, 29, 0.9);
+  --aura-primary: #9b7bff;
+  --aura-primary-strong: #7c5cff;
+  --aura-secondary: #4ad9d9;
+  --aura-secondary-soft: rgba(74, 217, 217, 0.2);
+  --aura-text: #edf3ff;
+  --aura-muted: #a3aec2;
+  --aura-success: #4ee0a0;
+  --aura-danger: #ff7b98;
+  --aura-outline: rgba(168, 182, 202, 0.18);
+  --aura-glow: rgba(155, 123, 255, 0.38);
+  --aura-cyan-glow: rgba(74, 217, 217, 0.32);
 
-  /* On-surface (text) colors */
-  --color-on-surface:               #d4e4fa;
-  --color-on-surface-variant:       #c6c5d5;
-  --color-on-background:            #d4e4fa;
-  --color-inverse-surface:          #d4e4fa;
-  --color-inverse-on-surface:       #233143;
+  --color-background: var(--aura-bg);
+  --color-surface: var(--aura-surface);
+  --color-surface-dim: #0c1220;
+  --color-surface-bright: #1b2736;
+  --color-surface-container-lowest: #070d18;
+  --color-surface-container-low: rgba(15, 22, 33, 0.9);
+  --color-surface-container: rgba(19, 28, 40, 0.92);
+  --color-surface-container-high: rgba(25, 35, 49, 0.96);
+  --color-surface-container-highest: rgba(34, 45, 60, 0.98);
+  --color-surface-variant: #1a2636;
 
-  /* Primary — Soft Indigo */
-  --color-primary:                  #bdc2ff;
-  --color-on-primary:               #131e8c;
-  --color-primary-container:        #818cf8;
-  --color-on-primary-container:     #101b8a;
-  --color-primary-fixed:            #e0e0ff;
-  --color-primary-fixed-dim:        #bdc2ff;
-  --color-inverse-primary:          #4953bc;
+  --color-on-surface: var(--aura-text);
+  --color-on-surface-variant: var(--aura-muted);
+  --color-on-background: var(--aura-text);
+  --color-inverse-surface: #edf3ff;
+  --color-inverse-on-surface: #111827;
 
-  /* Secondary — Mint Glow */
-  --color-secondary:                #45dfa4;
-  --color-on-secondary:             #003825;
-  --color-secondary-container:      #00bd85;
-  --color-on-secondary-container:   #00452e;
-  --color-secondary-fixed:          #68fcbf;
-  --color-secondary-fixed-dim:      #45dfa4;
+  --color-primary: var(--aura-primary);
+  --color-on-primary: #f2ebff;
+  --color-primary-container: var(--aura-primary-strong);
+  --color-on-primary-container: #ffffff;
+  --color-primary-fixed: #d8c9ff;
+  --color-primary-fixed-dim: var(--aura-primary);
+  --color-inverse-primary: #8a62ff;
 
-  /* Tertiary */
-  --color-tertiary:                 #bcc7de;
-  --color-on-tertiary:              #263143;
-  --color-tertiary-container:       #8b96ac;
+  --color-secondary: var(--aura-secondary);
+  --color-on-secondary: #041d27;
+  --color-secondary-container: rgba(74, 217, 217, 0.16);
+  --color-on-secondary-container: #b9ffff;
+  --color-secondary-fixed: #aaf6f6;
+  --color-secondary-fixed-dim: var(--aura-secondary);
 
-  /* Utility */
-  --color-outline:                  #908f9e;
-  --color-outline-variant:          #454653;
-  --color-error:                    #ffb4ab;
-  --color-error-container:          #93000a;
+  --color-tertiary: #d9e4ff;
+  --color-on-tertiary: #1d2737;
+  --color-tertiary-container: #a8b7d6;
 
-  /* Typography scale */
+  --color-outline: rgba(168, 182, 202, 0.2);
+  --color-outline-variant: rgba(168, 182, 202, 0.12);
+  --color-error: var(--aura-danger);
+  --color-error-container: rgba(255, 123, 152, 0.15);
+
   --font-family-base: 'Inter', system-ui, sans-serif;
-  --font-size-display-lg:  48px;
+  --font-size-display-lg: 56px;
   --font-size-headline-md: 24px;
   --font-size-headline-sm: 20px;
-  --font-size-body-lg:     16px;
-  --font-size-body-md:     14px;
-  --font-size-label-caps:  12px;
+  --font-size-body-lg: 16px;
+  --font-size-body-md: 14px;
+  --font-size-label-caps: 12px;
 
-  /* Spacing */
-  --spacing-unit:               4px;
-  --spacing-stack-sm:           8px;
-  --spacing-stack-md:           16px;
-  --spacing-stack-lg:           32px;
-  --spacing-gutter:             16px;
-  --spacing-container-padding:  24px;
+  --spacing-unit: 4px;
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 32px;
+  --spacing-gutter: 16px;
+  --spacing-container-padding: 24px;
 
-  /* Radii */
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   24px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
   --radius-full: 9999px;
 
-  /* Sidebar width */
   --sidebar-width: 280px;
 }
 
-/* --- Reset & Base --- */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html, body, #root {
-  height: 100%;
-  width: 100%;
-}
-
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; width: 100%; }
 body {
+  margin: 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-body-lg);
-  background-color: var(--color-background);
-  color: var(--color-on-background);
+  background: radial-gradient(circle at top, rgba(155, 123, 255, 0.12), transparent 35%), var(--aura-bg);
+  color: var(--aura-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
 }
 
-/* --- Ambient background glow (the "ethereal" feel) --- */
+button, input, textarea { font: inherit; }
+button { transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease; }
+button:hover { transform: translateY(-1px); }
+button:active { transform: translateY(0) scale(0.99); }
+
 .ambient-bg {
-  background:
-    radial-gradient(circle at top left,    rgba(129, 140, 248, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at bottom right, rgba(69, 223, 164, 0.06) 0%, transparent 50%);
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(155, 123, 255, 0.18), transparent 22%),
+    radial-gradient(circle at 85% 20%, rgba(74, 217, 217, 0.12), transparent 22%),
+    radial-gradient(circle at 50% 90%, rgba(124, 92, 255, 0.1), transparent 26%);
 }
 
-/* --- Custom Scrollbar --- */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-surface-container-highest);
+  background: rgba(255,255,255,0.12);
   border-radius: var(--radius-full);
 }
 
-/* --- Material Symbols font utility --- */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
@@ -144,36 +142,132 @@ body {
   user-select: none;
 }
 
-/* --- Animations --- */
 @keyframes slideInUp {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0);    }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(69, 223, 164, 0); }
-  50%       { box-shadow: 0 0 8px 2px rgba(69, 223, 164, 0.4); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 217, 217, 0); }
+  50% { box-shadow: 0 0 12px 3px rgba(74, 217, 217, 0.28); }
 }
 
 @keyframes ping {
   75%, 100% { transform: scale(2); opacity: 0; }
 }
 
-.msg-enter {
-  animation: slideInUp 0.3s ease-out forwards;
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.35; }
+  50% { transform: translate3d(0, -8px, 0); opacity: 0.8; }
 }
 
-.status-online {
-  animation: pulse-glow 2s infinite;
+@keyframes auraLetterFromLogo {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.8);
+    filter: blur(6px);
+  }
+  52% {
+    opacity: 1;
+    transform: translateY(18px) scale(1.08);
+    filter: blur(0);
+  }
+  74% {
+    transform: translateY(-7px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 18px rgba(155, 123, 255, 0.38));
+  }
 }
 
-.ping {
-  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+@keyframes catLogoReveal {
+  0% { opacity: 0; transform: scale(0.8) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* --- Input glow on focus --- */
+@keyframes subtleFadeIn {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes aiPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes blinkAI {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-1px); }
+}
+
+.msg-enter { animation: slideInUp 0.28s ease-out; }
+.status-online { animation: pulse-glow 2.2s infinite; }
+.ping { animation: ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.aura-fade-in { animation: subtleFadeIn 0.5s ease-out; }
+.aura-letter-drop {
+  animation: auraLetterFromLogo 0.8s cubic-bezier(0.2, 0.8, 0.22, 1) both;
+  will-change: transform, opacity, filter;
+}
+.aura-origin-stage::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 92px;
+  transform: translateX(-50%);
+  width: min(340px, 72%);
+  height: 56px;
+  background: linear-gradient(180deg, rgba(5, 11, 22, 0) 0%, rgba(5, 11, 22, 0.86) 70%, rgba(5, 11, 22, 1) 100%);
+  pointer-events: none;
+  z-index: 3;
+}
+.cat-logo-reveal {
+  animation: catLogoReveal 0.7s ease-out both;
+}
+.splash-screen {
+  animation: subtleFadeIn 0.45s ease-out;
+}
+.splash-screen.splash-exit {
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 0.32s ease, transform 0.32s ease;
+}
+.login-enter {
+  animation: subtleFadeIn 0.45s ease-out;
+}
+.splash-cta {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.splash-cta:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 20px 36px rgba(124, 92, 255, 0.35);
+  filter: brightness(1.05);
+}
+.splash-cta:active {
+  transform: translateY(0) scale(0.99);
+}
+.ai-pulse { animation: aiPulse 1.5s ease-in-out infinite; }
+.ai-thinking-dot { animation: blinkAI 1s infinite ease-in-out; }
+
 .input-glow:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 1px var(--color-primary), 0 0 20px rgba(189, 194, 255, 0.15);
+  border-color: rgba(155, 123, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(155, 123, 255, 0.7), 0 0 24px rgba(155, 123, 255, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 900px) {
+  body { overflow: auto; }
+}
+
+@media (max-width: 640px) {
+  :root { --sidebar-width: 0px; }
 }

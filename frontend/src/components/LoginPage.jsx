@@ -1,23 +1,19 @@
 import { useState } from 'react'
+import heroLogo from '../assets/hero.png'
 import { useAuth } from '../context/AuthContext'
 
 function LoginPage() {
   const { signUp, signIn } = useAuth()
-
-  // Mode: false = Sign In, true = Sign Up
   const [isSignUp, setIsSignUp] = useState(false)
-
-  // Form inputs
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-
-  // UI state
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // Switch between Sign In and Sign Up
+  const logoLetters = ['A', 'U', 'R', 'A']
+
   function toggleMode(e) {
     e.preventDefault()
     setIsSignUp(prev => !prev)
@@ -25,7 +21,6 @@ function LoginPage() {
     setSuccess('')
   }
 
-  // Validate form
   function validateInputs() {
     if (isSignUp && !name.trim()) {
       setError('Please enter your full name.')
@@ -38,7 +33,6 @@ function LoginPage() {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
     if (!emailRegex.test(email.trim())) {
       setError('Please enter a valid email address.')
       return false
@@ -52,59 +46,35 @@ function LoginPage() {
     return true
   }
 
-  // Submit login/signup form
   async function handleSubmit(e) {
     e.preventDefault()
-
     setError('')
     setSuccess('')
 
-    if (!validateInputs()) {
-      return
-    }
+    if (!validateInputs()) return
 
     setLoading(true)
 
     try {
       if (isSignUp) {
-        // SUPABASE SIGN UP
-        const { data, error } = await signUp(
-          email.trim(),
-          password
-        )
+        const { data, error } = await signUp(email.trim(), password)
 
-        if (error) {
-          throw error
-        }
+        if (error) throw error
 
-        // Supabase may require email verification
         if (!data.session) {
-          setSuccess(
-            'Account created! Please check your email to verify your account.'
-          )
+          setSuccess('Account created! Please check your email to verify your account.')
         } else {
           setSuccess('Account created successfully!')
         }
 
-        // Clear password after signup
         setPassword('')
       } else {
-        // SUPABASE SIGN IN
-        const { error } = await signIn(
-          email.trim(),
-          password
-        )
-
-        if (error) {
-          throw error
-        }
-
+        const { error } = await signIn(email.trim(), password)
+        if (error) throw error
         setSuccess('Signed in successfully!')
       }
     } catch (err) {
-      setError(
-        err.message || 'Something went wrong. Please try again.'
-      )
+      setError(err.message || 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -112,454 +82,405 @@ function LoginPage() {
 
   return (
     <div style={styles.page}>
+      <div style={styles.backgroundGlow} />
+      <div style={styles.backgroundGlowSecondary} />
+      <div style={styles.backgroundDashes} />
 
-      {/* Background glow */}
-      <div style={styles.orbPrimary} />
-      <div style={styles.orbSecondary} />
+      <main style={styles.layout}>
+        <section style={styles.brandPanel}>
+          <div style={styles.brandWrap}>
+            <div style={styles.logoImageWrap}>
+              <img src={heroLogo} alt="Aura cat logo" className="cat-logo-reveal" style={styles.logoImage} />
+            </div>
 
-      {/* Auth Card */}
-      <main style={styles.card}>
+            <div aria-label="Aura wordmark" style={styles.logoStack}>
+              {logoLetters.map((letter, index) => (
+                <span
+                  key={`${letter}-${index}`}
+                  className="aura-letter-drop"
+                  style={{
+                    ...styles.logoWord,
+                    animationDelay: `${index * 180}ms`,
+                  }}
+                >
+                  {letter}
+                </span>
+              ))}
+            </div>
 
-        {/* Logo */}
-        <div style={styles.header}>
-          <h1 style={styles.logo}>Aura</h1>
+            <div style={styles.brandAccent} />
 
-          <p style={styles.tagline}>
-            {isSignUp
-              ? 'Create your workspace account.'
-              : 'Your space to connect and focus.'}
-          </p>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div style={styles.errorBanner} role="alert">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '18px' }}
-            >
-              error
-            </span>
-
-            <span>{error}</span>
+            <h2 style={styles.motto}>Connect. Communicate. Together.</h2>
           </div>
-        )}
+        </section>
 
-        {/* Success */}
-        {success && (
-          <div style={styles.successBanner} role="status">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '18px' }}
-            >
-              check_circle
-            </span>
-
-            <span>{success}</span>
+        <section style={styles.card}>
+          <div style={styles.cardHeader}>
+            <p style={styles.eyebrow}>AURA</p>
+            <h1 style={styles.title}>Welcome back</h1>
+            <p style={styles.subtitle}>Sign in to continue to AURA</p>
           </div>
-        )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} style={styles.form}>
+          {error && (
+            <div style={styles.errorBanner} role="alert">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>error</span>
+              <span>{error}</span>
+            </div>
+          )}
 
-          {/* Name - Signup only */}
-          {isSignUp && (
+          {success && (
+            <div style={styles.successBanner} role="status">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+              <span>{success}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={styles.form}>
+            {isSignUp && (
+              <div style={styles.inputWrapper}>
+                <span className="material-symbols-outlined" style={styles.inputIcon}>person</span>
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="Full name"
+                  value={name}
+                  onChange={e => {
+                    setName(e.target.value)
+                    setError('')
+                  }}
+                  required
+                  className="input-glow"
+                  style={styles.input}
+                  disabled={loading}
+                  autoComplete="name"
+                />
+              </div>
+            )}
+
             <div style={styles.inputWrapper}>
-
-              <span
-                className="material-symbols-outlined"
-                style={styles.inputIcon}
-              >
-                person
-              </span>
-
+              <span className="material-symbols-outlined" style={styles.inputIcon}>mail</span>
               <input
-                id="name"
-                type="text"
-                placeholder="Full name"
-                value={name}
+                id="email"
+                type="email"
+                placeholder="Email address"
+                value={email}
                 onChange={e => {
-                  setName(e.target.value)
+                  setEmail(e.target.value)
                   setError('')
                 }}
                 required
                 className="input-glow"
                 style={styles.input}
                 disabled={loading}
-                autoComplete="name"
+                autoComplete="email"
               />
-
             </div>
-          )}
 
-          {/* Email */}
-          <div style={styles.inputWrapper}>
-
-            <span
-              className="material-symbols-outlined"
-              style={styles.inputIcon}
-            >
-              mail
-            </span>
-
-            <input
-              id="email"
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={e => {
-                setEmail(e.target.value)
-                setError('')
-              }}
-              required
-              className="input-glow"
-              style={styles.input}
-              disabled={loading}
-              autoComplete="email"
-            />
-
-          </div>
-
-          {/* Password */}
-          <div style={styles.inputWrapper}>
-
-            <span
-              className="material-symbols-outlined"
-              style={styles.inputIcon}
-            >
-              lock
-            </span>
-
-            <input
-              id="password"
-              type="password"
-              placeholder="Password (min. 6 characters)"
-              value={password}
-              onChange={e => {
-                setPassword(e.target.value)
-                setError('')
-              }}
-              required
-              minLength={6}
-              className="input-glow"
-              style={styles.input}
-              disabled={loading}
-              autoComplete={
-                isSignUp
-                  ? 'new-password'
-                  : 'current-password'
-              }
-            />
-
-          </div>
-
-          {/* Forgot password */}
-          {!isSignUp && (
-            <div
-              style={{
-                textAlign: 'right',
-                marginTop: '-4px'
-              }}
-            >
-              <a
-                href="#"
-                onClick={e => {
-                  e.preventDefault()
-                  setError(
-                    'Password reset will be added next.'
-                  )
+            <div style={styles.inputWrapper}>
+              <span className="material-symbols-outlined" style={styles.inputIcon}>lock</span>
+              <input
+                id="password"
+                type="password"
+                placeholder="Password (min. 6 characters)"
+                value={password}
+                onChange={e => {
+                  setPassword(e.target.value)
+                  setError('')
                 }}
-                style={styles.forgotLink}
-              >
-                Forgot password?
-              </a>
+                required
+                minLength={6}
+                className="input-glow"
+                style={styles.input}
+                disabled={loading}
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              />
             </div>
-          )}
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...styles.submitBtn,
-              opacity: loading ? 0.7 : 1,
-              cursor: loading
-                ? 'not-allowed'
-                : 'pointer'
-            }}
-          >
-
-            {loading ? (
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    animation:
-                      'spin 1s linear infinite',
-                    fontSize: '20px'
+            {!isSignUp && (
+              <div style={styles.linkRow}>
+                <a
+                  href="#"
+                  onClick={e => {
+                    e.preventDefault()
+                    setError('Password reset will be added next.')
                   }}
+                  style={styles.forgotLink}
                 >
-                  sync
-                </span>
-
-                {isSignUp
-                  ? 'Creating Account...'
-                  : 'Signing In...'}
-              </span>
-            ) : (
-              isSignUp
-                ? 'Create Account'
-                : 'Sign In'
+                  Forgot password?
+                </a>
+              </div>
             )}
 
-          </button>
+            <button type="submit" disabled={loading} style={{ ...styles.submitBtn, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
+              {loading ? (
+                <span style={styles.loadingText}>
+                  <span className="material-symbols-outlined" style={styles.loadingIcon}>sync</span>
+                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                </span>
+              ) : (
+                isSignUp ? 'Create account' : 'Login'
+              )}
+            </button>
+          </form>
 
-        </form>
+          <div style={styles.divider}>
+            <div style={styles.dividerLine} />
+            <span style={styles.dividerText}>OR</span>
+            <div style={styles.dividerLine} />
+          </div>
 
-        {/* Divider */}
-        <div style={styles.divider}>
-
-          <div style={styles.dividerLine} />
-
-          <span style={styles.dividerText}>
-            Or
-          </span>
-
-          <div style={styles.dividerLine} />
-
-        </div>
-
-        {/* Mode switch */}
-        <p style={styles.createAccount}>
-
-          {isSignUp
-            ? 'Already have an account?'
-            : "Don't have an account?"}{' '}
-
-          <a
-            href="#"
-            onClick={toggleMode}
-            style={styles.createLink}
-          >
-            {isSignUp
-              ? 'Sign In'
-              : 'Create Account'}
-          </a>
-
-        </p>
-
+          <p style={styles.switchText}>
+            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <a href="#" onClick={toggleMode} style={styles.switchLink}>
+              {isSignUp ? 'Sign in' : 'Create an account'}
+            </a>
+          </p>
+        </section>
       </main>
     </div>
   )
 }
 
-/* =========================
-   STYLES
-========================= */
-
 const styles = {
-
   page: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '16px',
+    padding: '24px',
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: 'var(--color-background)',
+    background: 'radial-gradient(circle at top, rgba(155, 123, 255, 0.12), transparent 32%), var(--aura-bg)',
   },
-
-  orbPrimary: {
+  backgroundGlow: {
     position: 'absolute',
-    top: '25%',
-    left: '25%',
-    width: '384px',
-    height: '384px',
-    background: 'var(--color-primary-container)',
+    width: '420px',
+    height: '420px',
+    left: '8%',
+    top: '14%',
     borderRadius: '50%',
-    filter: 'blur(120px)',
-    opacity: 0.15,
+    background: 'radial-gradient(circle, rgba(155, 123, 255, 0.24), transparent 60%)',
+    filter: 'blur(22px)',
+    pointerEvents: 'none',
+    animation: 'float-slow 12s ease-in-out infinite',
+  },
+  backgroundGlowSecondary: {
+    position: 'absolute',
+    width: '360px',
+    height: '360px',
+    right: '10%',
+    bottom: '12%',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(74, 217, 217, 0.14), transparent 60%)',
+    filter: 'blur(16px)',
+    pointerEvents: 'none',
+    animation: 'float-slow 15s ease-in-out infinite reverse',
+  },
+  backgroundDashes: {
+    position: 'absolute',
+    inset: 0,
+    backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+    backgroundSize: '36px 36px',
+    maskImage: 'radial-gradient(circle at center, black 35%, transparent 100%)',
     pointerEvents: 'none',
   },
-
-  orbSecondary: {
-    position: 'absolute',
-    bottom: '25%',
-    right: '25%',
-    width: '480px',
-    height: '480px',
-    background: 'var(--color-secondary-container)',
-    borderRadius: '50%',
-    filter: 'blur(150px)',
-    opacity: 0.08,
-    pointerEvents: 'none',
-  },
-
-  card: {
-    width: '100%',
-    maxWidth: '440px',
+  layout: {
     position: 'relative',
-    zIndex: 10,
-    backgroundColor: 'rgba(28, 43, 60, 0.6)',
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.05)',
-    borderRadius: 'var(--radius-xl)',
-    padding: '48px',
-    boxShadow:
-      '0 0 40px rgba(129, 140, 248, 0.1)',
+    zIndex: 1,
+    width: '100%',
+    maxWidth: '1180px',
+    minHeight: '720px',
+    display: 'grid',
+    gridTemplateColumns: '1.15fr 0.85fr',
+    borderRadius: '32px',
+    overflow: 'hidden',
+    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(9, 15, 24, 0.7)',
+    boxShadow: '0 20px 80px rgba(7, 11, 18, 0.7)',
+    backdropFilter: 'blur(18px)',
+    WebkitBackdropFilter: 'blur(18px)',
   },
-
-  header: {
+  brandPanel: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(135deg, rgba(18, 24, 38, 0.92), rgba(9, 14, 22, 0.95))',
+    borderRight: '1px solid rgba(255,255,255,0.06)',
+  },
+  brandWrap: {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '18px',
     textAlign: 'center',
-    marginBottom: '32px',
+    padding: '32px',
   },
-
-  logo: {
+  logoImageWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '12px',
+  },
+  logoImage: {
+    width: '120px',
+    height: '120px',
+    objectFit: 'contain',
+    borderRadius: '50%',
+    boxShadow: '0 0 26px rgba(155, 123, 255, 0.24)',
+    display: 'block',
+  },
+  logoStack: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: '0.12em',
+    minHeight: '80px',
+    flexWrap: 'nowrap',
+  },
+  logoWord: {
+    display: 'inline-block',
     fontFamily: 'var(--font-family-base)',
-    fontSize: 'var(--font-size-display-lg)',
-    fontWeight: '600',
+    fontSize: 'clamp(38px, 4vw, 76px)',
+    lineHeight: 1,
     letterSpacing: '0.04em',
-    color: 'var(--color-primary)',
-    marginBottom: '8px',
-    lineHeight: '1.2',
+    fontWeight: '800',
+    color: '#f4f7ff',
+    textTransform: 'uppercase',
+    textShadow: '0 0 18px rgba(155, 123, 255, 0.42)',
+    position: 'relative',
   },
-
-  tagline: {
+  brandAccent: {
+    width: '120px',
+    height: '2px',
+    background: 'linear-gradient(90deg, transparent, rgba(155, 123, 255, 0.7), rgba(74, 217, 217, 0.7), transparent)',
+    opacity: 0.8,
+  },
+  motto: {
     fontFamily: 'var(--font-family-base)',
-    fontSize: 'var(--font-size-body-md)',
-    color: 'var(--color-on-surface-variant)',
-    lineHeight: '1.6',
+    fontSize: 'clamp(16px, 2vw, 28px)',
+    fontWeight: '500',
+    letterSpacing: '0.05em',
+    color: 'var(--aura-muted)',
   },
-
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: '56px 42px',
+    background: 'rgba(11, 16, 27, 0.86)',
+  },
+  cardHeader: { marginBottom: '28px' },
+  eyebrow: {
+    fontFamily: 'var(--font-family-base)',
+    fontSize: '11px',
+    letterSpacing: '0.16em',
+    color: 'var(--aura-secondary)',
+    marginBottom: '10px',
+    fontWeight: '700',
+  },
+  title: {
+    fontFamily: 'var(--font-family-base)',
+    fontSize: 'clamp(30px, 2vw, 42px)',
+    fontWeight: '700',
+    color: 'var(--aura-text)',
+    marginBottom: '8px',
+  },
+  subtitle: {
+    fontFamily: 'var(--font-family-base)',
+    color: 'var(--aura-muted)',
+    fontSize: '16px',
+  },
   errorBanner: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: 'rgba(147, 0, 10, 0.25)',
-    border: '1px solid var(--color-error)',
-    color: 'var(--color-error)',
-    borderRadius: 'var(--radius-md)',
+    backgroundColor: 'rgba(255, 123, 152, 0.12)',
+    border: '1px solid rgba(255, 123, 152, 0.42)',
+    color: 'var(--aura-danger)',
+    borderRadius: '12px',
     padding: '10px 14px',
-    marginBottom: '20px',
+    marginBottom: '18px',
     fontSize: '13px',
     fontFamily: 'var(--font-family-base)',
   },
-
   successBanner: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: 'rgba(0, 189, 133, 0.15)',
-    border: '1px solid var(--color-secondary)',
-    color: 'var(--color-secondary)',
-    borderRadius: 'var(--radius-md)',
+    backgroundColor: 'rgba(78, 224, 160, 0.12)',
+    border: '1px solid rgba(78, 224, 160, 0.36)',
+    color: 'var(--aura-success)',
+    borderRadius: '12px',
     padding: '10px 14px',
-    marginBottom: '20px',
+    marginBottom: '18px',
     fontSize: '13px',
     fontFamily: 'var(--font-family-base)',
   },
-
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-
-  inputWrapper: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-  },
-
-  inputIcon: {
-    position: 'absolute',
-    left: '14px',
-    fontSize: '20px',
-    color: 'var(--color-on-surface-variant)',
-    opacity: 0.7,
-    pointerEvents: 'none',
-  },
-
+  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  inputWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
+  inputIcon: { position: 'absolute', left: '16px', fontSize: '20px', color: 'var(--aura-muted)', pointerEvents: 'none' },
   input: {
     width: '100%',
-    backgroundColor: 'var(--color-surface-container)',
-    border: '1px solid rgba(69, 70, 83, 0.5)',
-    borderRadius: 'var(--radius-md)',
-    padding: '12px 16px 12px 48px',
-    color: 'var(--color-on-surface)',
+    backgroundColor: 'rgba(20, 29, 40, 0.94)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '16px',
+    padding: '15px 18px 15px 50px',
+    color: 'var(--aura-text)',
     fontFamily: 'var(--font-family-base)',
-    fontSize: 'var(--font-size-body-md)',
-    transition:
-      'border-color 0.3s, box-shadow 0.3s',
+    fontSize: '15px',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease',
   },
-
+  linkRow: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: '-2px',
+  },
   forgotLink: {
     fontFamily: 'var(--font-family-base)',
     fontSize: '13px',
-    color: 'rgba(189, 194, 255, 0.8)',
+    color: 'var(--aura-secondary)',
     textDecoration: 'none',
   },
-
   submitBtn: {
     width: '100%',
-    backgroundColor: 'var(--color-primary-container)',
-    color: 'white',
+    background: 'linear-gradient(135deg, var(--aura-primary), var(--aura-primary-strong))',
+    color: '#ffffff',
     fontFamily: 'var(--font-family-base)',
-    fontSize: 'var(--font-size-headline-sm)',
-    fontWeight: '500',
-    padding: '12px',
+    fontSize: '16px',
+    fontWeight: '700',
+    padding: '15px 20px',
     border: 'none',
-    borderRadius: 'var(--radius-md)',
-    marginTop: '8px',
-    transition:
-      'background-color 0.3s, box-shadow 0.3s, transform 0.2s',
-    boxShadow:
-      '0 4px 15px rgba(129, 140, 248, 0.2)',
+    borderRadius: '16px',
+    marginTop: '10px',
+    boxShadow: '0 12px 28px rgba(124, 92, 255, 0.3)',
+    cursor: 'pointer',
   },
-
-  divider: {
+  loadingText: {
     display: 'flex',
     alignItems: 'center',
-    margin: '28px 0',
-    gap: '16px',
+    justifyContent: 'center',
+    gap: '8px',
   },
-
-  dividerLine: {
-    flex: 1,
-    borderTop:
-      '1px solid rgba(255,255,255,0.05)',
+  loadingIcon: {
+    animation: 'spin 1s linear infinite',
+    fontSize: '20px',
   },
-
-  dividerText: {
-    fontFamily: 'var(--font-family-base)',
-    fontSize: '11px',
-    color: 'rgba(198, 197, 213, 0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-  },
-
-  createAccount: {
+  divider: { display: 'flex', alignItems: 'center', margin: '26px 0 18px', gap: '14px' },
+  dividerLine: { flex: 1, borderTop: '1px solid rgba(255,255,255,0.08)' },
+  dividerText: { fontFamily: 'var(--font-family-base)', fontSize: '11px', letterSpacing: '0.14em', color: 'var(--aura-muted)' },
+  switchText: {
     textAlign: 'center',
     fontFamily: 'var(--font-family-base)',
-    fontSize: 'var(--font-size-body-md)',
-    color: 'var(--color-on-surface-variant)',
+    fontSize: '15px',
+    color: 'var(--aura-muted)',
   },
-
-  createLink: {
-    color: 'var(--color-secondary)',
-    fontWeight: '500',
+  switchLink: {
+    color: 'var(--aura-secondary)',
+    fontWeight: '600',
     textDecoration: 'none',
-    marginLeft: '4px',
-    cursor: 'pointer',
   },
 }
 

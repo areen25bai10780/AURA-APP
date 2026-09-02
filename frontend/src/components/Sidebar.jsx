@@ -20,6 +20,12 @@ function Sidebar({
   currentUser,
   onlineUsers = [],
   onLogout,
+  voiceChannels = [
+    { id: 'general-voice', name: 'General Voice' },
+    { id: 'study-room', name: 'Study Room' },
+  ],
+  activeVoiceChannel = null,
+  onVoiceSelect,
 }) {
   const directMessages = [
     { name: 'design-team', label: 'Design Team', online: true },
@@ -76,6 +82,29 @@ function Sidebar({
                 {channelName === 'announcements' ? 'campaign' : 'tag'}
               </span>
               <span style={styles.channelLabel}>#{channelName}</span>
+              {isActive && <div style={styles.activeBar} />}
+            </button>
+          )
+        })}
+
+        {/* Voice Channels Section */}
+        <div style={{ ...styles.sectionLabel, marginTop: '20px' }}>VOICE CHANNELS</div>
+        {voiceChannels.map((channel) => {
+          const channelName = channel.name || channel
+          const isActive = String(activeVoiceChannel || '').toLowerCase() === String(channelName).toLowerCase()
+
+          return (
+            <button
+              key={channel.id || channelName}
+              type="button"
+              onClick={() => onVoiceSelect && onVoiceSelect(channelName)}
+              style={{
+                ...styles.channelBtn,
+                ...(isActive ? styles.channelBtnActive : {}),
+              }}
+            >
+              <span className="material-symbols-outlined" style={styles.channelIcon}>volume_up</span>
+              <span style={styles.channelLabel}>{channelName}</span>
               {isActive && <div style={styles.activeBar} />}
             </button>
           )

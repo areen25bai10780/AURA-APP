@@ -4,8 +4,10 @@ import ChatHeader from './ChatHeader'
 import MessageFeed from './MessageFeed'
 import MessageComposer from './MessageComposer'
 import BottomNav from './BottomNav'
+import VoiceChannelPanel from './VoiceChannelPanel'
 import { useChatSocket } from '../hooks/useChatSocket'
 import { fetchChannels } from '../api/messages'
+import { useVoiceChannel } from '../hooks/useVoiceChannel'
 
 /**
  * ChatLayout — The main real-time workspace view for Aura.
@@ -22,6 +24,11 @@ function ChatLayout({ currentUser, onLogout }) {
     { id: 2, name: 'announcements' },
     { id: 3, name: 'random' },
   ])
+  const [voiceChannels, setVoiceChannels] = useState([
+    { id: 'general-voice', name: 'General Voice' },
+    { id: 'study-room', name: 'Study Room' },
+  ])
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null)
   const [activeTab, setActiveTab] = useState('messages')
 
   // Load channels on mount
@@ -46,6 +53,34 @@ function ChatLayout({ currentUser, onLogout }) {
     handleTyping,
   } = useChatSocket(activeChannel, currentUser)
 
+  const {
+    currentVoiceChannel,
+    participants,
+    isMuted,
+    error,
+    remoteStreams,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    toggleMute,
+  } = useVoiceChannel(currentUser)
+
+  const handleVoiceSelect = (channelName) => {
+    if (currentVoiceChannel && currentVoiceChannel !== channelName) {
+      leaveVoiceChannel()
+    }
+
+    if (!currentVoiceChannel || currentVoiceChannel !== channelName) {
+      setActiveVoiceChannel(channelName)
+      joinVoiceChannel(channelName)
+    }
+  }
+
+  useEffect(() => {
+    if (!currentVoiceChannel && activeVoiceChannel) {
+      setActiveVoiceChannel(null)
+    }
+  }, [currentVoiceChannel, activeVoiceChannel])
+
   return (
     <div style={styles.layout}>
       {/* Ambient background glow (Ethereal Focus) */}
@@ -60,6 +95,9 @@ function ChatLayout({ currentUser, onLogout }) {
           currentUser={currentUser}
           onlineUsers={onlineUsers}
           onLogout={onLogout}
+          voiceChannels={voiceChannels}
+          activeVoiceChannel={activeVoiceChannel}
+          onVoiceSelect={handleVoiceSelect}
         />
       </div>
 
@@ -82,6 +120,22 @@ function ChatLayout({ currentUser, onLogout }) {
           onEditMessage={editMessage}
           onDeleteMessage={deleteMessage}
         />
+
+        {currentVoiceChannel && (
+          <VoiceChannelPanel
+            channelName={currentVoiceChannel}
+            participants={participants}
+            isMuted={isMuted}
+            onToggleMute={toggleMute}
+            onLeave={() => {
+              leaveVoiceChannel()
+              setActiveVoiceChannel(null)
+            }}
+            currentUser={currentUser}
+            error={error}
+            remoteStreams={remoteStreams}
+          />
+        )}
 
         {/* Message Input Bar */}
         <MessageComposer

@@ -588,6 +588,7 @@ app.delete('/messages/:messageId', authenticateToken, async (req, res) => {
 
 // Maintain online users in server memory (userId -> Set of socketIds)
 const onlineUsers = new Map(); // userId -> { user: { id, name, email }, sockets: Set }
+const voiceRooms = new Map(); // channelName -> userId -> { user, socketId, muted }
 
 // Socket.IO Authentication Middleware
 io.use((socket, next) => {
@@ -720,6 +721,121 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.error('Socket message save error:', err);
     }
+  });
+
+  socket.on('voice:join', ({ channelName, user }) => {
+    if (!channelName || !socket.user) return;
+
+    const normalizedChannelName = String(channelName).trim();
+    const roomName = `voice_${normalizedChannelName.toLowerCase()}`;
+    const userKey = socket.user.id || socket.user.email || user?.id || user?.email || socket.id;
+
+    socket.join(roomName);
+    socket.currentVoiceChannel = normalizedChannelName;
+    socket.currentVoiceRoom = roomName;
+
+    if (!voiceRooms.has(roomName)) {
+      voiceRooms.set(roomName, new Map());
+    }
+
+    const roomUsers = voiceRooms.get(roomName);
+    const participant = {
+      id: socket.user.id || user?.id || socket.user.email || user?.email || socket.id,
+      name: socket.user.name || user?.name || socket.user.email?.split('@')[0] || 'User',
+      email: socket.user.email || user?.email || '',
+      muted: false,
+      socketId: socket.id,
+    };
+
+    roomUsers.set(userKey, participant);
+
+    const participants = Array.from(roomUsers.values());
+    io.to(roomName).emit('voice:participants', participants);
+  });
+
+  socket.on('voice:leave', ({ channelName }) => {
+    const normalizedChannelName = channelName ? String(channelName).trim() : socket.currentVoiceChannel;
+    const roomName = normalizedChannelName ? `voice_${normalizedChannelName.toLowerCase()}` : null;
+
+    if (!roomName) return;
+
+    const roomUsers = voiceRooms.get(roomName);
+    const userKey = socket.user?.id || socket.user?.email || socket.id;
+
+    if (roomUsers) {
+      roomUsers.delete(userKey);
+      if (roomUsers.size === 0) {
+        voiceRooms.delete(roomName);
+      }
+    }
+
+    socket.leave(roomName);
+    io.to(roomName).emit('voice:participants', roomUsers ? Array.from(roomUsers.values()) : []);
+    socket.to(roomName).emit('voice:participant-left', {
+      userId: socket.user?.id || socket.user?.email || socket.id,
+      channelName: normalizedChannelName,
+    });
+
+    socket.currentVoiceChannel = null;
+    socket.currentVoiceRoom = null;
+  });
+
+  socket.on('voice:mute-state', ({ channelName, muted }) => {
+    const normalizedChannelName = String(channelName || '').trim();
+    if (!normalizedChannelName) return;
+
+    const roomName = `voice_${normalizedChannelName.toLowerCase()}`;
+    const roomUsers = voiceRooms.get(roomName);
+    const userKey = socket.user?.id || socket.user?.email || socket.id;
+
+    if (roomUsers && roomUsers.has(userKey)) {
+      const currentUser = roomUsers.get(userKey);
+      currentUser.muted = Boolean(muted);
+      roomUsers.set(userKey, currentUser);
+      io.to(roomName).emit('voice:participants', Array.from(roomUsers.values()));
+    }
+  });
+
+  socket.on('voice:offer', ({ channelName, targetUserId, offer }) => {
+    if (!channelName || !targetUserId || !offer) return;
+    const targetRoom = `voice_${String(channelName).toLowerCase()}`;
+    const roomUsers = voiceRooms.get(targetRoom) || new Map();
+    const targetUser = roomUsers.get(targetUserId);
+    if (!targetUser || !targetUser.socketId) return;
+
+    io.to(targetUser.socketId).emit('voice:offer', {
+      fromUserId: socket.user?.id || socket.user?.email || socket.id,
+      offer,
+      channelName,
+    });
+  });
+
+  socket.on('voice:answer', ({ channelName, targetUserId, answer }) => {
+    if (!channelName || !targetUserId || !answer) return;
+    const targetRoom = `voice_${String(channelName).toLowerCase()}`;
+    const roomUsers = voiceRooms.get(targetRoom) || new Map();
+    const targetUser = roomUsers.get(targetUserId);
+    if (!targetUser || !targetUser.socketId) return;
+
+    io.to(targetUser.socketId).emit('voice:answer', {
+      fromUserId: socket.user?.id || socket.user?.email || socket.id,
+      answer,
+      channelName,
+    });
+  });
+
+  socket.on('voice:ice-candidate', ({ channelName, targetUserId, candidate }) => {
+    if (!channelName || !targetUserId || !candidate) return;
+    const targetRoom = `voice_${String(channelName).toLowerCase()}`;
+    const roomUsers = voiceRooms.get(targetRoom) || new Map();
+    const targetUser = roomUsers.get(targetUserId);
+    if (!targetUser || !targetUser.socketId) return;
+
+    io.to(targetUser.socketId).emit('voice:ice-candidate', {
+      fromUserId: socket.user?.id || socket.user?.email || socket.id,
+      candidate,
+      channelName,
+    });
   });
 
   // --- Real-Time Typing Indicator: Start ---
