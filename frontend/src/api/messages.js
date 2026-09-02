@@ -109,3 +109,50 @@ export async function sendChannelMessage(
 
   return data.message
 }
+
+export async function editChannelMessage(messageId, text) {
+  const token = await getAuthToken()
+
+  const response = await fetch(
+    `${API_BASE_URL}/messages/${encodeURIComponent(messageId)}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ text: text ?? '' }),
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to edit message.')
+  }
+
+  return data.message
+}
+
+export async function deleteChannelMessage(messageId) {
+  const token = await getAuthToken()
+
+  const response = await fetch(
+    `${API_BASE_URL}/messages/${encodeURIComponent(messageId)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete message.')
+  }
+
+  return data
+}

@@ -41,6 +41,8 @@ function ChatLayout({ currentUser, onLogout }) {
     onlineUsers,
     isConnected,
     sendMessage,
+    editMessage,
+    deleteMessage,
     handleTyping,
   } = useChatSocket(activeChannel, currentUser)
 
@@ -77,6 +79,8 @@ function ChatLayout({ currentUser, onLogout }) {
           currentUser={currentUser}
           typingUsers={typingUsers}
           loading={loadingMessages}
+          onEditMessage={editMessage}
+          onDeleteMessage={deleteMessage}
         />
 
         {/* Message Input Bar */}

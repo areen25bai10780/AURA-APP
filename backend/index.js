@@ -19,6 +19,17 @@ async function ensureMessageImageColumn() {
   }
 }
 
+async function ensureMessageEditColumns() {
+  try {
+    await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ');
+  } catch (error) {
+    console.warn('Message edit column check note:', error.message);
+  }
+}
+
+ensureMessageImageColumn();
+ensureMessageEditColumns();
+
 // Setup Socket.IO with CORS for frontend communication
 const io = new Server(server, {
   cors: {
@@ -93,6 +104,30 @@ async function resolveDbUserId(user) {
   } catch {
     return 1;
   }
+}
+
+function buildMessagePayload(row, fallbackChannelId = null, fallbackChannelName = null) {
+  const channelId = fallbackChannelId ?? row.channel_id ?? row.channelId;
+  const messageText = row.content ?? row.text ?? '';
+  const imageUrl = row.image_url ?? row.imageUrl ?? null;
+  const createdAt = row.created_at ?? row.createdAt;
+  const senderName = row.sender || row.name || 'User';
+  const senderEmail = row.sender_email ?? row.senderEmail ?? '';
+  const userId = row.user_id ?? row.userId ?? null;
+
+  return {
+    id: row.id,
+    channelId,
+    channelName: fallbackChannelName ?? row.channel_name ?? row.channelName,
+    text: messageText || '',
+    imageUrl: imageUrl || null,
+    sender: senderName,
+    userId,
+    senderEmail,
+    createdAt,
+    edited: Boolean(row.edited_at || row.edited),
+    time: createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+  };
 }
 
 // ----------------------------------------------------
@@ -311,7 +346,7 @@ app.get('/channels/:channelIdentifier/messages', async (req, res) => {
 
     if (isNaN(channelIdentifier)) {
       query = `
-        SELECT m.id, m.content as text, m.created_at, m.channel_id, m.image_url,
+        SELECT m.id, m.content as text, m.created_at, m.channel_id, m.image_url, m.edited_at,
                u.id as user_id, u.name as sender, u.email as sender_email
         FROM messages m
         JOIN channels c ON m.channel_id = c.id
@@ -323,7 +358,7 @@ app.get('/channels/:channelIdentifier/messages', async (req, res) => {
       params = [channelIdentifier];
     } else {
       query = `
-        SELECT m.id, m.content as text, m.created_at, m.channel_id, m.image_url,
+        SELECT m.id, m.content as text, m.created_at, m.channel_id, m.image_url, m.edited_at,
                u.id as user_id, u.name as sender, u.email as sender_email
         FROM messages m
         JOIN users u ON m.user_id = u.id
@@ -336,17 +371,7 @@ app.get('/channels/:channelIdentifier/messages', async (req, res) => {
 
     const result = await pool.query(query, params);
 
-    const formattedMessages = result.rows.map((row) => ({
-      id: row.id,
-      channelId: row.channel_id,
-      text: row.text || '',
-      imageUrl: row.image_url || null,
-      sender: row.sender,
-      userId: row.user_id,
-      senderEmail: row.sender_email,
-      createdAt: row.created_at,
-      time: new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }));
+    const formattedMessages = result.rows.map((row) => buildMessagePayload(row));
 
     return res.status(200).json({
       success: true,
@@ -407,18 +432,18 @@ app.post('/channels/:channelIdentifier/messages', authenticateToken, async (req,
     const senderName = mergedUser.name;
 
     // 4. Construct payload
-    const messagePayload = {
-      id: savedMessage.id,
-      channelId: channelId,
-      channelName: isNaN(channelIdentifier) ? channelIdentifier : undefined,
-      text: savedMessage.content || '',
-      imageUrl: savedMessage.image_url || null,
-      sender: senderName,
-      userId: user.id || dbUserId,
-      senderEmail: mergedUser.email || '',
-      createdAt: savedMessage.created_at,
-      time: new Date(savedMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
+    const messagePayload = buildMessagePayload(
+      {
+        ...savedMessage,
+        sender: senderName,
+        sender_email: mergedUser.email || '',
+        user_id: user.id || dbUserId,
+        channel_id: channelId,
+        channel_name: isNaN(channelIdentifier) ? channelIdentifier : undefined,
+      },
+      channelId,
+      isNaN(channelIdentifier) ? channelIdentifier : undefined
+    );
 
     // 5. Broadcast to Socket.IO Channel Room
     io.to(`channel_${channelId}`).emit('new-message', messagePayload);
@@ -433,6 +458,127 @@ app.post('/channels/:channelIdentifier/messages', authenticateToken, async (req,
   } catch (error) {
     console.error('Error saving message:', error);
     return res.status(500).json({ success: false, message: 'Failed to save message to database.' });
+  }
+});
+
+// PUT /messages/:messageId - Edit a message you own
+app.put('/messages/:messageId', authenticateToken, async (req, res) => {
+  const messageId = Number(req.params.messageId);
+  const { text } = req.body;
+  const trimmedText = typeof text === 'string' ? text.trim() : '';
+
+  if (!Number.isInteger(messageId) || messageId <= 0) {
+    return res.status(400).json({ success: false, message: 'Invalid message ID.' });
+  }
+
+  try {
+    const currentUserId = await resolveDbUserId(req.user);
+    const messageResult = await pool.query(
+      'SELECT id, channel_id, user_id, content, image_url, edited_at FROM messages WHERE id = $1 LIMIT 1',
+      [messageId]
+    );
+
+    if (messageResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Message not found.' });
+    }
+
+    const message = messageResult.rows[0];
+
+    if (Number(message.user_id) !== Number(currentUserId)) {
+      return res.status(403).json({ success: false, message: 'You can only edit your own messages.' });
+    }
+
+    if (!trimmedText && !message.image_url) {
+      return res.status(400).json({ success: false, message: 'Message text cannot be empty.' });
+    }
+
+    const nextText = trimmedText || message.content || '';
+
+    const updateResult = await pool.query(
+      'UPDATE messages SET content = $1, edited_at = NOW() WHERE id = $2 RETURNING id, channel_id, user_id, content, image_url, edited_at, created_at',
+      [nextText, messageId]
+    );
+
+    const updatedMessage = updateResult.rows[0];
+    const senderResult = await pool.query('SELECT name, email FROM users WHERE id = $1 LIMIT 1', [updatedMessage.user_id]);
+    const sender = senderResult.rows[0] || { name: 'User', email: '' };
+    const channelResult = await pool.query('SELECT id, name FROM channels WHERE id = $1 LIMIT 1', [updatedMessage.channel_id]);
+    const channel = channelResult.rows[0];
+
+    const messagePayload = buildMessagePayload(
+      {
+        ...updatedMessage,
+        sender: sender.name,
+        sender_email: sender.email,
+        user_id: updatedMessage.user_id,
+        channel_id: updatedMessage.channel_id,
+        channel_name: channel?.name,
+      },
+      updatedMessage.channel_id,
+      channel?.name
+    );
+
+    io.to(`channel_${updatedMessage.channel_id}`).emit('message-updated', messagePayload);
+    io.to(`channel_${channel?.name?.toLowerCase?.() || updatedMessage.channel_id}`).emit('message-updated', messagePayload);
+
+    return res.status(200).json({ success: true, message: messagePayload });
+  } catch (error) {
+    console.error('Error updating message:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update message.' });
+  }
+});
+
+// DELETE /messages/:messageId - Delete a message you own
+app.delete('/messages/:messageId', authenticateToken, async (req, res) => {
+  const messageId = Number(req.params.messageId);
+
+  if (!Number.isInteger(messageId) || messageId <= 0) {
+    return res.status(400).json({ success: false, message: 'Invalid message ID.' });
+  }
+
+  try {
+    const currentUserId = await resolveDbUserId(req.user);
+    const messageResult = await pool.query(
+      'SELECT id, channel_id, user_id FROM messages WHERE id = $1 LIMIT 1',
+      [messageId]
+    );
+
+    if (messageResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Message not found.' });
+    }
+
+    const message = messageResult.rows[0];
+
+    if (Number(message.user_id) !== Number(currentUserId)) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own messages.' });
+    }
+
+    const channelResult = await pool.query('SELECT id, name FROM channels WHERE id = $1 LIMIT 1', [message.channel_id]);
+    const channel = channelResult.rows[0];
+
+    await pool.query('DELETE FROM messages WHERE id = $1', [messageId]);
+
+    const deletePayload = {
+      messageId: message.id,
+      channelId: message.channel_id,
+      channelName: channel?.name || null,
+    };
+
+    io.to(`channel_${message.channel_id}`).emit('message-deleted', deletePayload);
+    if (channel?.name) {
+      io.to(`channel_${channel.name.toLowerCase()}`).emit('message-deleted', deletePayload);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Message deleted successfully.',
+      messageId: message.id,
+      channelId: message.channel_id,
+      channelName: channel?.name || null,
+    });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete message.' });
   }
 });
 
@@ -553,18 +699,19 @@ io.on('connection', (socket) => {
       );
       const savedMsg = insertResult.rows[0];
 
-      const messagePayload = {
-        id: savedMsg.id,
-        channelId: channelId,
-        channelName: isNaN(channelIdentifier) ? channelIdentifier : undefined,
-        text: savedMsg.content || '',
-        imageUrl: savedMsg.image_url || null,
-        sender: sender.name || sender.email?.split('@')[0] || 'User',
-        userId: sender.id || dbUserId,
-        senderEmail: sender.email || '',
-        createdAt: savedMsg.created_at,
-        time: new Date(savedMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
+      const messagePayload = buildMessagePayload(
+        {
+          ...savedMsg,
+          sender: sender.name || sender.email?.split('@')[0] || 'User',
+          sender_email: sender.email || '',
+          user_id: sender.id || dbUserId,
+          channel_id: channelId,
+          channel_name: isNaN(channelIdentifier) ? channelIdentifier : undefined,
+          edited: false,
+        },
+        channelId,
+        isNaN(channelIdentifier) ? channelIdentifier : undefined
+      );
 
       // Broadcast to room
       const roomName = `channel_${String(channelIdentifier).toLowerCase()}`;

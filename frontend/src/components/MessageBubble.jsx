@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 /**
  * MessageBubble — Renders a single chat message with Aura styling.
  *
@@ -5,7 +7,10 @@
  *   message — message object { id, sender, text, time, userId, senderEmail, type, consecutive, showOnline }
  *   currentUser — current logged in user object { id, name, email }
  */
-function MessageBubble({ message, currentUser }) {
+function MessageBubble({ message, currentUser, onEditMessage, onDeleteMessage }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draftText, setDraftText] = useState(message.text || '')
+
   // Determine if this message was sent by the currently logged-in user
   const isOutgoing =
     message.type === 'outgoing' ||
@@ -18,6 +23,37 @@ function MessageBubble({ message, currentUser }) {
   const initial = (isOutgoing ? currentUser?.name || 'Y' : message.sender || 'U').charAt(0).toUpperCase()
   const hasText = Boolean((message.text || '').trim())
   const hasImage = Boolean(message.imageUrl)
+
+  async function handleSaveEdit() {
+    if (!onEditMessage) return
+
+    const trimmed = draftText.trim()
+    if (!trimmed && !message.imageUrl) {
+      return
+    }
+
+    try {
+      await onEditMessage(message.id, trimmed)
+      setIsEditing(false)
+    } catch (error) {
+      console.error('Failed to save edited message:', error)
+      alert(error.message || 'Failed to save changes.')
+    }
+  }
+
+  async function handleDelete() {
+    if (!onDeleteMessage) return
+
+    const confirmed = window.confirm('Delete this message?')
+    if (!confirmed) return
+
+    try {
+      await onDeleteMessage(message.id)
+    } catch (error) {
+      console.error('Failed to delete message:', error)
+      alert(error.message || 'Failed to delete message.')
+    }
+  }
 
   return (
     <div
@@ -76,33 +112,86 @@ function MessageBubble({ message, currentUser }) {
           </div>
         )}
 
-        {/* Text Bubble */}
-        {hasText && (
-          <div
-            style={
-              isOutgoing
-                ? styles.bubbleOutgoing
-                : isConsecutive
-                  ? styles.bubbleConsecutive
-                  : styles.bubbleIncoming
-            }
-          >
-            {message.text}
+        {isOutgoing && !isEditing && (onEditMessage || onDeleteMessage) && (
+          <div style={styles.actionRow}>
+            {onEditMessage && (
+              <button type="button" style={styles.actionButton} onClick={() => setIsEditing(true)}>
+                Edit
+              </button>
+            )}
+            {onDeleteMessage && (
+              <button type="button" style={styles.actionButtonDanger} onClick={handleDelete}>
+                Delete
+              </button>
+            )}
           </div>
         )}
 
-        {hasImage && (
-          <img
-            src={message.imageUrl}
-            alt="Shared chat attachment"
-            style={
-              isOutgoing
-                ? styles.imageOutgoing
-                : isConsecutive
-                  ? styles.imageConsecutive
-                  : styles.imageIncoming
-            }
-          />
+        {isEditing ? (
+          <div style={isOutgoing ? styles.editorOutgoing : styles.editorIncoming}>
+            <textarea
+              value={draftText}
+              onChange={(event) => setDraftText(event.target.value)}
+              rows={3}
+              style={styles.editorInput}
+            />
+            <div style={styles.editorActions}>
+              <button type="button" style={styles.saveButton} onClick={handleSaveEdit}>
+                Save
+              </button>
+              <button type="button" style={styles.cancelButton} onClick={() => { setDraftText(message.text || ''); setIsEditing(false) }}>
+                Cancel
+              </button>
+            </div>
+            {hasImage && (
+              <img
+                src={message.imageUrl}
+                alt="Shared chat attachment"
+                style={
+                  isOutgoing
+                    ? styles.imageOutgoing
+                    : isConsecutive
+                      ? styles.imageConsecutive
+                      : styles.imageIncoming
+                }
+              />
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Text Bubble */}
+            {hasText && (
+              <div
+                style={
+                  isOutgoing
+                    ? styles.bubbleOutgoing
+                    : isConsecutive
+                      ? styles.bubbleConsecutive
+                      : styles.bubbleIncoming
+                }
+              >
+                {message.text}
+              </div>
+            )}
+
+            {hasImage && (
+              <img
+                src={message.imageUrl}
+                alt="Shared chat attachment"
+                style={
+                  isOutgoing
+                    ? styles.imageOutgoing
+                    : isConsecutive
+                      ? styles.imageConsecutive
+                      : styles.imageIncoming
+                }
+              />
+            )}
+          </>
+        )}
+
+        {message.edited && !isEditing && (
+          <span style={styles.editedBadge}>edited</span>
         )}
       </div>
     </div>
@@ -168,6 +257,92 @@ const styles = {
     fontSize: '12px',
     color: 'rgba(198, 197, 213, 0.5)',
     lineHeight: '1',
+  },
+  actionRow: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '6px',
+    justifyContent: 'flex-end',
+  },
+  actionButton: {
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'transparent',
+    color: 'var(--color-on-surface-variant)',
+    borderRadius: '999px',
+    padding: '4px 10px',
+    fontSize: '11px',
+    cursor: 'pointer',
+  },
+  actionButtonDanger: {
+    border: '1px solid rgba(255,120,120,0.35)',
+    background: 'rgba(255,120,120,0.08)',
+    color: '#ffb4b4',
+    borderRadius: '999px',
+    padding: '4px 10px',
+    fontSize: '11px',
+    cursor: 'pointer',
+  },
+  editorOutgoing: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    backgroundColor: 'rgba(189, 194, 255, 0.12)',
+    border: '1px solid rgba(189,194,255,0.25)',
+    borderRadius: '18px',
+    padding: '10px',
+    maxWidth: '320px',
+  },
+  editorIncoming: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    backgroundColor: 'rgba(28, 43, 60, 0.85)',
+    border: '1px solid rgba(255,255,255,0.05)',
+    borderRadius: '18px',
+    padding: '10px',
+    maxWidth: '320px',
+  },
+  editorInput: {
+    width: '100%',
+    minHeight: '72px',
+    resize: 'vertical',
+    borderRadius: '12px',
+    backgroundColor: 'rgba(10, 16, 23, 0.28)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    color: 'var(--color-on-surface)',
+    fontFamily: 'var(--font-family-base)',
+    fontSize: '14px',
+    padding: '8px 10px',
+    boxSizing: 'border-box',
+  },
+  editorActions: {
+    display: 'flex',
+    gap: '8px',
+    justifyContent: 'flex-end',
+  },
+  saveButton: {
+    border: 'none',
+    backgroundColor: 'var(--color-primary)',
+    color: 'var(--color-on-primary)',
+    borderRadius: '999px',
+    padding: '6px 12px',
+    cursor: 'pointer',
+    fontWeight: '600',
+  },
+  cancelButton: {
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'transparent',
+    color: 'var(--color-on-surface-variant)',
+    borderRadius: '999px',
+    padding: '6px 12px',
+    cursor: 'pointer',
+  },
+  editedBadge: {
+    fontSize: '10px',
+    color: 'rgba(198, 197, 213, 0.5)',
+    letterSpacing: '0.04em',
+    textTransform: 'lowercase',
+    marginTop: '2px',
   },
   bubbleIncoming: {
     backgroundColor: 'rgba(28, 43, 60, 0.85)',

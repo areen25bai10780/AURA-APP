@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getSocket } from '../api/socket'
-import { fetchChannelMessages, sendChannelMessage } from '../api/messages'
+import {
+  fetchChannelMessages,
+  sendChannelMessage,
+  editChannelMessage,
+  deleteChannelMessage,
+} from '../api/messages'
 
 /**
  * useChatSocket
@@ -198,11 +203,59 @@ export function useChatSocket(activeChannel, currentUser) {
       setOnlineUsers(usersList || [])
     }
 
+    function handleMessageUpdated(updatedMessage) {
+      const currentChannel = String(
+        activeChannelRef.current || ''
+      ).toLowerCase()
+
+      const updatedChannelName = updatedMessage.channelName
+        ? String(updatedMessage.channelName).toLowerCase()
+        : null
+
+      const updatedChannelId = String(updatedMessage.channelId || '')
+
+      if (
+        updatedChannelName === currentChannel ||
+        updatedChannelId === currentChannel
+      ) {
+        setMessages((previousMessages) =>
+          previousMessages.map((existingMessage) =>
+            existingMessage.id === updatedMessage.id
+              ? { ...existingMessage, ...updatedMessage, edited: true }
+              : existingMessage
+          )
+        )
+      }
+    }
+
+    function handleMessageDeleted({ messageId, channelId, channelName }) {
+      const currentChannel = String(
+        activeChannelRef.current || ''
+      ).toLowerCase()
+
+      const channelIdValue = String(channelId || '')
+      const channelNameValue = channelName ? String(channelName).toLowerCase() : ''
+
+      if (
+        channelNameValue === currentChannel ||
+        channelIdValue === currentChannel
+      ) {
+        setMessages((previousMessages) =>
+          previousMessages.filter(
+            (existingMessage) =>
+              Number(existingMessage.id) !== Number(messageId)
+          )
+        )
+      }
+    }
+
     setIsConnected(socket.connected)
 
     socket.on('connect', handleConnect)
     socket.on('disconnect', handleDisconnect)
     socket.on('new-message', handleNewMessage)
+    socket.on('message-updated', handleMessageUpdated)
+    socket.on('message-deleted', handleMessageDeleted)
     socket.on('user-typing', handleUserTyping)
     socket.on('user-stop-typing', handleUserStopTyping)
     socket.on('presence:update', handlePresenceUpdate)
@@ -211,6 +264,8 @@ export function useChatSocket(activeChannel, currentUser) {
       socket.off('connect', handleConnect)
       socket.off('disconnect', handleDisconnect)
       socket.off('new-message', handleNewMessage)
+      socket.off('message-updated', handleMessageUpdated)
+      socket.off('message-deleted', handleMessageDeleted)
       socket.off('user-typing', handleUserTyping)
       socket.off('user-stop-typing', handleUserStopTyping)
       socket.off('presence:update', handlePresenceUpdate)
@@ -279,7 +334,57 @@ export function useChatSocket(activeChannel, currentUser) {
   )
 
   // ============================================================
-  // 4. TYPING INDICATOR
+  // 4. EDIT / DELETE MESSAGE
+  // ============================================================
+
+  const editMessage = useCallback(
+    async (messageId, text) => {
+      const trimmedText = text?.trim?.() ?? ''
+      const socket = getSocket(currentUser)
+
+      try {
+        const updatedMessage = await editChannelMessage(
+          messageId,
+          trimmedText
+        )
+
+        socket.emit('message-updated', updatedMessage)
+        return updatedMessage
+      } catch (error) {
+        console.error('Error editing message through REST API:', error)
+        throw error
+      }
+    },
+    [currentUser]
+  )
+
+  const deleteMessage = useCallback(
+    async (messageId) => {
+      const socket = getSocket(currentUser)
+
+      try {
+        const payload = await deleteChannelMessage(messageId)
+        socket.emit('message-deleted', {
+          messageId: payload.messageId,
+          channelId: payload.channelId,
+        })
+        setMessages((previousMessages) =>
+          previousMessages.filter(
+            (existingMessage) =>
+              Number(existingMessage.id) !== Number(messageId)
+          )
+        )
+        return payload
+      } catch (error) {
+        console.error('Error deleting message through REST API:', error)
+        throw error
+      }
+    },
+    [currentUser]
+  )
+
+  // ============================================================
+  // 5. TYPING INDICATOR
   // ============================================================
 
   const handleTyping = useCallback(() => {
@@ -309,7 +414,7 @@ export function useChatSocket(activeChannel, currentUser) {
   }, [activeChannel, currentUser])
 
   // ============================================================
-  // 5. CLEANUP TYPING TIMER
+  // 6. CLEANUP TYPING TIMER
   // ============================================================
 
   useEffect(() => {
@@ -331,6 +436,8 @@ export function useChatSocket(activeChannel, currentUser) {
     onlineUsers,
     isConnected,
     sendMessage,
+    editMessage,
+    deleteMessage,
     handleTyping,
   }
 }

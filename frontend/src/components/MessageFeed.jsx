@@ -10,7 +10,7 @@ import MessageBubble from './MessageBubble'
  * 3. Real-time typing indicator banner
  * 4. Auto-scroll to latest message on incoming traffic
  */
-function MessageFeed({ messages = [], currentUser, typingUsers = [], loading = false }) {
+function MessageFeed({ messages = [], currentUser, typingUsers = [], loading = false, onEditMessage, onDeleteMessage }) {
   const bottomRef = useRef(null)
 
   // Auto scroll to bottom when new messages arrive or when someone starts typing
@@ -56,6 +56,8 @@ function MessageFeed({ messages = [], currentUser, typingUsers = [], loading = f
             key={message.id || index}
             message={{ ...message, consecutive: isConsecutive }}
             currentUser={currentUser}
+            onEditMessage={onEditMessage}
+            onDeleteMessage={onDeleteMessage}
           />
         )
       })}
